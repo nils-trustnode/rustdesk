@@ -2474,7 +2474,20 @@ List<String>? urlLinkToCmdArgs(Uri uri) {
   var queryParameters =
       uri.queryParameters.map((k, v) => MapEntry(k.toLowerCase(), v));
 
-  var key = queryParameters["key"];
+  // Read "key" from the raw query: Uri.queryParameters turns "+" into a
+  // space, which corrupts base64 server keys (rustdesk/discussions/15317).
+  String? key;
+  for (final part in uri.query.split('&')) {
+    final i = part.indexOf('=');
+    if (i > 0 && part.substring(0, i).toLowerCase() == 'key') {
+      final raw = part.substring(i + 1);
+      try {
+        key = Uri.decodeComponent(raw);
+      } catch (_) {
+        key = raw;
+      }
+    }
+  }
   if (id != null) {
     if (key != null) {
       id = "$id?key=$key";
